@@ -7,10 +7,12 @@ const musicSchema = new mongoose.Schema({
         required: true,
     },
     artist: {
-        type: mongoose.Schema.Types.ObjectId,
+        type: String,
+        required: true,
     },
     artistId: {
-        type: String,
+        type: mongoose.Schema.Types.ObjectId,
+        required: true,
     },
     musicUrl: {
         type: String,

@@ -15,17 +15,22 @@ const getAllSongs = async (req, res) => {
 const addSong = async (req, res) => {
     try {
         const { title, artist } = req.body;
-        const music = req.files['music'] ? req.files['music'][0] : null;
-        const cover = req.files['cover'] ? req.files['cover'][0] : null;
+        const music = req.files.music ? req.files.music?.[0] : null;
+        const cover = req.files.cover ? req.files.cover?.[0] : null;
         const user = req.user;
 
         if (!title || !artist || !music) {
             return res.status(400).json({ message: 'Title, artist, and music file are required' });
         }
-        const musicUrl = await uploadService.uploadFile(music);
+
+        const music_base64Image = req.files.music[0].buffer.toString("base64");
+
+        const musicUrl = await uploadService.uploadFile(music_base64Image, music.originalname);
+
         let coverUrl = '';
         if (cover) {
-            coverUrl = await uploadService.uploadFile(cover);
+            const cover_base64Image = req.files.cover[0].buffer.toString("base64");
+            coverUrl = await uploadService.uploadFile(cover_base64Image, cover.originalname);
         }
         const newSong = new musicModel({
             title,
