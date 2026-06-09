@@ -1,4 +1,4 @@
-import ImageKit from '@imagekit/nodejs';
+const ImageKit = require('@imagekit/nodejs');
 const _config = require('../../config/config');
 
 const client = new ImageKit({
