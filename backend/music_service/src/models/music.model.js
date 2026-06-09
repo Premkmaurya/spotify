@@ -14,12 +14,21 @@ const musicSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         required: true,
     },
+    musicId: {
+        type: String,
+        required: true,
+    },
     musicUrl: {
+        type: String,
+        required: true,
+    },
+    coverId: {
         type: String,
         required: true,
     },
     coverUrl: {
         type: String,
+        required: true,
     },
 }, { timestamps: true });
 

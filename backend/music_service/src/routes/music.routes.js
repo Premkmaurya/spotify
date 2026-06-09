@@ -15,6 +15,13 @@ router.post('/add', authValidate, upload.fields([
     { name: "music", maxCount: 1 },
 ]), musicController.addSong)
 
+router.patch('/update/:id', authValidate, upload.fields([
+    { name: "cover", maxCount: 1 },
+    { name: "music", maxCount: 1 },
+]), musicController.updateSong)
+
+router.delete('/delete/:id', authValidate, musicController.deleteSong)
+
 
 
 

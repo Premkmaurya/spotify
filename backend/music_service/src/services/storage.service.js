@@ -16,13 +16,24 @@ const uploadFile = async (file, fileName) => {
             folder: "spotify_music_service",
         });
 
-        return result.url;
+        return result;
     } catch (error) {
         console.error('Error uploading file:', error);
         throw error;
     }
 }
 
+const deleteFile = async (fileId) => {
+    try {
+        const result = await client.deleteFile(fileId);
+        return result;
+    } catch (error) {
+        console.error('Error deleting file:', error);
+        throw error;
+    }
+}
+
 module.exports = {
     uploadFile,
+    deleteFile,
 }

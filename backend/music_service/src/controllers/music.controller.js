@@ -36,8 +36,10 @@ const addSong = async (req, res) => {
             title,
             artist,
             artistId: user.id,
-            musicUrl,
-            coverUrl,
+            musicId: musicUrl.fileId,
+            coverId: coverUrl.fileId,
+            musicUrl: musicUrl.url,
+            coverUrl: coverUrl.url,
         });
         await newSong.save();
         res.status(201).json(newSong);
@@ -47,7 +49,75 @@ const addSong = async (req, res) => {
     }
 }
 
+const updateSong = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { title, artist } = req.body;
+        const music = req.files.music ? req.files.music?.[0] : null;
+        const cover = req.files.cover ? req.files.cover?.[0] : null;
+        const user = req.user;
+        const song = await musicModel.findById(id);
+
+        if (!song) {
+            return res.status(404).json({ message: 'Song not found' });
+        }
+        if (song.artistId.toString() !== user.id) {
+            return res.status(403).json({ message: 'Unauthorized' });
+        }
+
+        if (title) song.title = title;
+        if (artist) song.artist = artist;
+
+        if (music) {
+            await uploadService.deleteFile(song.musicId);
+            const music_base64Image = req.files.music[0].buffer.toString("base64");
+            const musicUrl = await uploadService.uploadFile(music_base64Image, music.originalname);
+            song.musicUrl = musicUrl.url;
+            song.musicId = musicUrl.fileId;
+        }
+
+        if (cover) {
+            await uploadService.deleteFile(song.coverId);
+            const cover_base64Image = req.files.cover[0].buffer.toString("base64");
+            const coverUrl = await uploadService.uploadFile(cover_base64Image, cover.originalname);
+            song.coverUrl = coverUrl.url;
+            song.coverId = coverUrl.fileId;
+        }
+
+        await song.save();
+        res.status(200).json(song);
+    } catch (error) {
+        console.error('Error updating song:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+}
+
+const deleteSong = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const user = req.user;
+        const song = await musicModel.findById(id);
+        if (!song) {
+            return res.status(404).json({ message: 'Song not found' });
+        }
+        if (song.artistId.toString() !== user.id) {
+            return res.status(403).json({ message: 'Unauthorized' });
+        }
+        await musicModel.findByIdAndDelete(id);
+        await uploadService.deleteFile(song.musicId);
+        await uploadService.deleteFile(song.coverId);
+
+        res.status(200).json({ message: 'Song deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting song:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+}
+
+
 module.exports = {
     getAllSongs,
     addSong,
+    updateSong,
+    deleteSong,
 }
