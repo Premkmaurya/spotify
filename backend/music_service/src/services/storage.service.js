@@ -1,5 +1,5 @@
 const ImageKit = require('imagekit');
-const _config = require('../../config/config');
+const _config = require('../config/config');
 
 const client = new ImageKit({
     privateKey: _config.IMAGEKIT_PRIVATE_KEY,

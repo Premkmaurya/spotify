@@ -1,5 +1,5 @@
 const jwt = require("jsonwebtoken");
-const _config = require("../../config/config");
+const _config = require("../config/config");
 
 const userValidate = (req, res, next) => {
     const token = req.cookies?.token || req.headers.authorization?.split(" ")[1];
