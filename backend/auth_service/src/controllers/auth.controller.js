@@ -4,7 +4,7 @@ const jwt = require("jsonwebtoken");
 const _config = require("../../config/config");
 
 const register = async (req, res) => {
-  const { username, email, password } = req.body;
+  const { username, email, password, role } = req.body;
   try {
     const user = await userModel.findOne({ email });
     if (user) {
@@ -15,11 +15,13 @@ const register = async (req, res) => {
       username,
       email,
       password: hashedPassword,
+      role,
     });
 
     const token = jwt.sign(
       {
         id: newUser._id,
+        role: newUser.role,
         email: newUser.email,
         username: newUser.username,
       },
@@ -56,6 +58,7 @@ const login = async (req, res) => {
     const token = jwt.sign(
       {
         id: user._id,
+        role: user.role,
         email: user.email,
         username: user.username,
       },
@@ -75,13 +78,13 @@ const login = async (req, res) => {
 };
 
 const logout = (req, res) => {
-    res.clearCookie("token");
-    res.status(200).json({ message: "User logged out successfully" });
+  res.clearCookie("token");
+  res.status(200).json({ message: "User logged out successfully" });
 };
 
 const getMe = async (req, res) => {
-    const user = req.user;
-    res.status(200).json({ user });
+  const user = req.user;
+  res.status(200).json({ user });
 };
 
 module.exports = {

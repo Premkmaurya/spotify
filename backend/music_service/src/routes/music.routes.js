@@ -8,19 +8,21 @@ const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
 
-router.get('/', authValidate, musicController.getAllSongs)
+router.get('/', authValidate.userValidate, musicController.getAllSongs)
 
-router.post('/add', authValidate, upload.fields([
+router.get('/:id', authValidate.userValidate, musicController.getSongById)
+
+router.post('/add', authValidate.artistValidate, upload.fields([
     { name: "cover", maxCount: 1 },
     { name: "music", maxCount: 1 },
 ]), musicController.addSong)
 
-router.patch('/update/:id', authValidate, upload.fields([
+router.patch('/update/:id', authValidate.artistValidate, upload.fields([
     { name: "cover", maxCount: 1 },
     { name: "music", maxCount: 1 },
 ]), musicController.updateSong)
 
-router.delete('/delete/:id', authValidate, musicController.deleteSong)
+router.delete('/delete/:id', authValidate.artistValidate, musicController.deleteSong)
 
 
 
