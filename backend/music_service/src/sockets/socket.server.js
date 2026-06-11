@@ -6,8 +6,8 @@ const cookie = require('cookie')
 
 const socketAuthMiddleware = (socket, next) => {
     try {
-        const cookies = (socket.handshake.headers.cookie || '');
-
+        const cookieHeader = (socket.handshake.headers.cookie || '');
+        const cookies = cookie.parse(cookieHeader);
         const token = cookies.token;
         if (!token) {
             return next(new Error('Authentication error: token required'));
@@ -37,7 +37,8 @@ const initSocketServer = (server) => {
 
         socket.on("play", (data) => {
             const musicId = data.musicId;
-            socket.broadcast.to(socket.user.id).emit("play", { musicId })
+            const progress = data.progress !== undefined ? data.progress : 0;
+            socket.broadcast.to(socket.user.id).emit("play", { musicId, progress })
         })
 
         socket.on("disconnect", () => {
