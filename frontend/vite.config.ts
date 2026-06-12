@@ -5,22 +5,23 @@ import tailwindcss from '@tailwindcss/vite'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  envPrefix: ['VITE_', 'AUTH_', 'MUSIC_'],
   server: {
     proxy: {
       '/api/auth': {
-        target: 'http://localhost:3000',
+        target: 'http://127.0.0.1:3000',
         changeOrigin: true,
       },
       '/api/music': {
-        target: 'http://localhost:3001',
+        target: 'http://127.0.0.1:3001',
         changeOrigin: true,
       },
       '/api/playlist': {
-        target: 'http://localhost:3001',
+        target: 'http://127.0.0.1:3001',
         changeOrigin: true,
       },
       '/socket.io': {
-        target: 'http://localhost:3001',
+        target: 'http://127.0.0.1:3001',
         ws: true,
         changeOrigin: true,
       },

@@ -11,7 +11,7 @@ import { Link } from 'react-router-dom';
 export const Search: React.FC = () => {
   const { query } = useSearchStore();
   const { currentSong, isPlaying, playSong, togglePlay } = usePlayerStore();
-  const { emitPlay } = useSocketStore();
+  const { emitPlay, emitPause } = useSocketStore();
 
   const { data: songs = [], isLoading: isLoadingSongs } = useQuery({
     queryKey: ['songs'],
@@ -25,7 +25,7 @@ export const Search: React.FC = () => {
 
   const handlePlaySong = (song: any, list: any[]) => {
     if (currentSong?._id === song._id) {
-      togglePlay(emitPlay);
+      togglePlay(emitPlay, emitPause);
     } else {
       playSong(song, list, emitPlay);
     }

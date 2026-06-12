@@ -38,7 +38,7 @@ export const TopNav: React.FC = () => {
   return (
     <header className="h-[64px] bg-[#000000]/60 backdrop-blur-md px-6 flex items-center justify-between sticky top-0 z-30 select-none">
       {/* History Navigation chevrons */}
-      <div className="flex items-center gap-2">
+      <div className="hidden sm:flex items-center gap-2">
         <button
           onClick={() => navigate(-1)}
           className="w-[40px] h-[40px] rounded-full bg-black/70 text-mist hover:text-white flex items-center justify-center transition focus:outline-none hover:scale-105"
@@ -76,13 +76,13 @@ export const TopNav: React.FC = () => {
       )}
 
       {/* User profile actions */}
-      <div className="relative" ref={dropdownRef}>
+      <div className="relative ml-auto" ref={dropdownRef}>
         <button
           onClick={() => setDropdownOpen(!dropdownOpen)}
-          className="flex items-center gap-[8px] p-[4px] pr-[12px] rounded-full bg-black/70 hover:bg-graphite transition duration-200 focus:outline-none hover:scale-102"
+          className="flex items-center gap-[8px] p-[4px] sm:pr-[12px] pr-[4px] rounded-full bg-black/70 hover:bg-graphite transition duration-200 focus:outline-none hover:scale-102"
         >
           {/* Avatar Bubble */}
-          <div className="w-[28px] h-[28px] rounded-full bg-spotify-green/20 flex items-center justify-center text-spotify-green">
+          <div className="w-[28px] h-[28px] rounded-full bg-spotify-green/20 flex items-center justify-center text-spotify-green flex-shrink-0">
             {user?.role === 'artist' ? (
               <Disc className="w-[16px] h-[16px] animate-spin-slow" />
             ) : (
@@ -90,10 +90,10 @@ export const TopNav: React.FC = () => {
             )}
           </div>
           {/* Username */}
-          <span className="text-sm font-semibold text-white truncate max-w-[120px]">
+          <span className="text-sm font-semibold text-white truncate max-w-[120px] hidden sm:inline">
             {user?.username}
           </span>
-          <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-zinc-800 text-bone scale-90">
+          <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-zinc-800 text-bone scale-90 hidden sm:inline flex-shrink-0">
             {user?.role}
           </span>
         </button>

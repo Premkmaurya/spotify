@@ -1,10 +1,12 @@
-import React from 'react';
-import { useParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { getPlaylist } from '../services/api/playlist';
+import React, { useState, useEffect, useRef } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { getPlaylist, deletePlaylist } from '../services/api/playlist';
 import { usePlayerStore } from '../store/playerStore';
 import { useSocketStore } from '../store/socketStore';
-import { Play, Pause, Clock, Radio, Music, Calendar } from 'lucide-react';
+import { useAuthStore } from '../store/authStore';
+import { Play, Pause, Music, Radio, Calendar, Clock, MoreVertical, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 const SongDuration: React.FC<{ url: string }> = ({ url }) => {
   const [duration, setDuration] = React.useState<string>('--:--');
@@ -34,14 +36,56 @@ const SongDuration: React.FC<{ url: string }> = ({ url }) => {
 
 export const PlaylistDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { user } = useAuthStore();
   const { currentSong, isPlaying, playSong, togglePlay } = usePlayerStore();
-  const { emitPlay } = useSocketStore();
+  const { emitPlay, emitPause } = useSocketStore();
+
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const dropdownTriggerRef = useRef<HTMLButtonElement>(null);
 
   const { data: playlist, isLoading, error } = useQuery({
     queryKey: ['playlist', id],
     queryFn: () => getPlaylist(id || ''),
     enabled: !!id,
   });
+
+  // Click outside dropdown handler
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target as Node) &&
+        dropdownTriggerRef.current &&
+        !dropdownTriggerRef.current.contains(e.target as Node)
+      ) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, []);
+
+  const deletePlaylistMutation = useMutation({
+    mutationFn: deletePlaylist,
+    onSuccess: () => {
+      toast.success('Playlist deleted successfully!');
+      queryClient.invalidateQueries({ queryKey: ['playlists'] });
+      navigate('/');
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.message || 'Failed to delete playlist.');
+    },
+  });
+
+  const handleDeletePlaylist = () => {
+    if (window.confirm('Are you sure you want to delete this playlist?')) {
+      setIsDropdownOpen(false);
+      deletePlaylistMutation.mutate(id || '');
+    }
+  };
 
   if (isLoading) {
     return (
@@ -67,7 +111,7 @@ export const PlaylistDetails: React.FC = () => {
       // Check if current song is already part of this playlist, then just toggle it
       const isSongInPlaylist = playlist.musics.some((s) => s._id === currentSong?._id);
       if (isSongInPlaylist) {
-        togglePlay(emitPlay);
+        togglePlay(emitPlay, emitPause);
       } else {
         playSong(playlist.musics[0], playlist.musics, emitPlay);
       }
@@ -87,9 +131,9 @@ export const PlaylistDetails: React.FC = () => {
   return (
     <div className="py-4 select-none space-y-6">
       {/* Playlist Hero Header */}
-      <div className="flex flex-col md:flex-row items-end gap-6 pt-4">
+      <div className="-mt-4 -mx-4 md:mt-0 md:mx-0 flex flex-col md:flex-row items-center md:items-end gap-6 pt-0 md:pt-4">
         {/* Cover Art */}
-        <div className="w-48 h-48 md:w-56 md:h-56 bg-graphite rounded-xl shadow-2xl flex-shrink-0 flex items-center justify-center overflow-hidden relative border border-zinc-800">
+        <div className="w-full aspect-square md:w-56 md:h-56 bg-graphite rounded-none md:rounded-xl shadow-2xl flex-shrink-0 flex items-center justify-center overflow-hidden relative border-b md:border border-zinc-800">
           {playlist.musics?.[0]?.coverUrl ? (
             <img src={playlist.musics[0].coverUrl} alt={playlist.name} className="w-full h-full object-cover" />
           ) : (
@@ -98,12 +142,12 @@ export const PlaylistDetails: React.FC = () => {
         </div>
 
         {/* Hero Metadata */}
-        <div className="space-y-2">
+        <div className="space-y-2 text-center md:text-left w-full px-4 md:px-0">
           <span className="text-xs font-bold uppercase tracking-wider text-mist">Playlist</span>
           <h1 className="text-4xl md:text-6xl font-extrabold text-white tracking-tight font-spotifymixuititle break-words">
             {playlist.name}
           </h1>
-          <div className="flex items-center gap-2 text-sm text-white font-semibold mt-2">
+          <div className="flex items-center justify-center md:justify-start gap-2 text-sm text-white font-semibold mt-2">
             <span className="text-spotify-green hover:underline cursor-pointer">{playlist.artist}</span>
             <span className="text-mist font-normal">•</span>
             <span className="text-mist font-normal">
@@ -126,6 +170,37 @@ export const PlaylistDetails: React.FC = () => {
               <Play className="w-[28px] h-[28px] fill-current text-black ml-[2px]" />
             )}
           </button>
+        )}
+
+        {/* Playlist Action Menu (Three-dot options button for creator/artist) */}
+        {user?.id === playlist?.artistId && (
+          <div className="relative ml-auto">
+            <button
+              ref={dropdownTriggerRef}
+              onClick={() => setIsDropdownOpen((prev) => !prev)}
+              className="w-[56px] h-[56px] inline-flex items-center justify-center rounded-full bg-transparent hover:bg-transparent text-mist hover:text-white transition duration-200 focus:outline-none"
+              aria-label="Playlist Actions"
+              aria-expanded={isDropdownOpen}
+              aria-haspopup="true"
+            >
+              <MoreVertical className="w-[36px] h-[36px]" />
+            </button>
+
+            {isDropdownOpen && (
+              <div
+                ref={dropdownRef}
+                className="absolute right-0 mt-[8px] w-[160px] bg-zinc-900 border border-white/[0.08] rounded-md shadow-2xl py-[6px] z-50 animate-in fade-in slide-in-from-top-1 duration-150"
+              >
+                <button
+                  onClick={handleDeletePlaylist}
+                  className="w-full text-left px-[16px] py-[10px] text-sm text-red-500 hover:bg-zinc-800 hover:text-red-400 font-semibold flex items-center gap-[10px] transition duration-150"
+                >
+                  <Trash2 className="w-[16px] h-[16px]" />
+                  Delete Playlist
+                </button>
+              </div>
+            )}
+          </div>
         )}
       </div>
 

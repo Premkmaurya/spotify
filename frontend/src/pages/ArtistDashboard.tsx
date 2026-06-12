@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../store/authStore';
 import { getAllSongs, addSong, updateSong, deleteSong } from '../services/api/music';
@@ -15,7 +15,8 @@ import {
   FileAudio,
   FileImage,
   X,
-  Music
+  Music,
+  MoreVertical
 } from 'lucide-react';
 
 export const ArtistDashboard: React.FC = () => {
@@ -47,6 +48,16 @@ export const ArtistDashboard: React.FC = () => {
   const [editArtist, setEditArtist] = useState('');
   const [editMusicFile, setEditMusicFile] = useState<File | null>(null);
   const [editCoverFile, setEditCoverFile] = useState<File | null>(null);
+
+  // Dropdown state for track actions menu
+  const [activeDropdownSongId, setActiveDropdownSongId] = useState<string | null>(null);
+
+  // Close dropdown on clicking outside
+  useEffect(() => {
+    const handleGlobalClick = () => setActiveDropdownSongId(null);
+    document.addEventListener('click', handleGlobalClick);
+    return () => document.removeEventListener('click', handleGlobalClick);
+  }, []);
 
   // Fetch all songs
   const { data: songs = [], isLoading: isLoadingSongs } = useQuery({
@@ -418,21 +429,42 @@ export const ArtistDashboard: React.FC = () => {
                     </td>
 
                     {/* Actions */}
-                    <td className="py-2.5 px-4 text-right space-x-2 whitespace-nowrap">
-                      <button
-                        onClick={() => openEditModal(song)}
-                        className="w-10 h-10 inline-flex items-center justify-center rounded-full bg-zinc-800/60 hover:bg-zinc-700 text-gray-300 hover:text-[#1DB954] transition duration-200 hover:scale-105 active:scale-95"
-                        title="Edit Track"
-                      >
-                        <Edit2 className="w-5 h-5" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteSong(song._id)}
-                        className="w-10 h-10 inline-flex items-center justify-center rounded-full bg-zinc-800/60 hover:bg-[#331111] text-gray-300 hover:text-red-400 transition duration-200 hover:scale-105 active:scale-95"
-                        title="Delete Track"
-                      >
-                        <Trash2 className="w-5 h-5" />
-                      </button>
+                    <td className="py-2.5 px-4 text-right relative">
+                      <div className="inline-block text-left">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setActiveDropdownSongId(activeDropdownSongId === song._id ? null : song._id);
+                          }}
+                          className="w-12 h-12 inline-flex items-center justify-center rounded-full bg-transparent hover:bg-transparent text-gray-300 hover:text-white transition duration-200 focus:outline-none"
+                          title="Actions"
+                        >
+                          <MoreVertical className="w-[28px] h-[28px]" />
+                        </button>
+
+                        {activeDropdownSongId === song._id && (
+                          <div className="absolute right-[16px] mt-[6px] w-[160px] rounded-lg bg-zinc-900 border border-white/[0.08] shadow-2xl py-[4px] z-50 text-left">
+                            <button
+                              onClick={() => {
+                                setActiveDropdownSongId(null);
+                                openEditModal(song);
+                              }}
+                              className="w-full px-[16px] py-[10px] text-sm text-mist hover:text-white hover:bg-zinc-800 transition flex items-center gap-[10px] font-bold"
+                            >
+                              <Edit2 className="w-[16px] h-[16px] text-spotify-green" /> Edit Track
+                            </button>
+                            <button
+                              onClick={() => {
+                                setActiveDropdownSongId(null);
+                                handleDeleteSong(song._id);
+                              }}
+                              className="w-full px-[16px] py-[10px] text-sm text-red-400 hover:text-red-300 hover:bg-zinc-800 transition flex items-center gap-[10px] border-t border-white/[0.04] mt-[4px] pt-[8px] font-bold"
+                            >
+                              <Trash2 className="w-[16px] h-[16px]" /> Delete Track
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}

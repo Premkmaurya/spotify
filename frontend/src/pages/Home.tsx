@@ -9,7 +9,7 @@ import { Link } from 'react-router-dom';
 
 export const Home: React.FC = () => {
   const { currentSong, isPlaying, playSong, togglePlay } = usePlayerStore();
-  const { emitPlay } = useSocketStore();
+  const { emitPlay, emitPause } = useSocketStore();
 
   const { data: songs = [], isLoading: isLoadingSongs } = useQuery({
     queryKey: ['songs'],
@@ -25,7 +25,7 @@ export const Home: React.FC = () => {
 
   const handlePlaySong = (song: any) => {
     if (currentSong?._id === song._id) {
-      togglePlay(emitPlay);
+      togglePlay(emitPlay, emitPause);
     } else {
       playSong(song, songs, emitPlay);
     }
@@ -135,13 +135,13 @@ export const Home: React.FC = () => {
                   </div>
 
                   {/* Play Button Overlay (Absolutely positioned on the right) */}
-                  <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-[250ms] z-10 flex-shrink-0">
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-[250ms] z-10 flex-shrink-0">
                     <button 
                       onClick={(e) => {
                         e.stopPropagation();
                         handlePlaySong(song);
                       }}
-                      className="w-10 h-10 rounded-full p-2 bg-[#1DB954] hover:bg-[#1ed760] hover:scale-105 active:scale-95 text-black flex items-center justify-center shadow-lg transition duration-200"
+                      className="w-10 h-10 rounded-full p-3 bg-[#1DB954] hover:bg-[#1ed760] hover:scale-105 active:scale-95 text-black flex items-center justify-center shadow-lg transition duration-200"
                     >
                       {isCurrentPlaying ? (
                         <Pause className="w-5 h-5 fill-current text-black" />
@@ -203,12 +203,12 @@ export const Home: React.FC = () => {
                         // Find if current playlist song is playing
                         const isCurrentInPlaylist = playlist.musics.some((s) => s._id === currentSong?._id);
                         if (isCurrentInPlaylist) {
-                          togglePlay(emitPlay);
+                          togglePlay(emitPlay, emitPause);
                         } else {
                           playSong(playlist.musics[0], playlist.musics, emitPlay);
                         }
                       }}
-                      className="absolute bottom-3 right-3 w-12 h-12 rounded-full bg-[#1DB954] hover:bg-[#1ed760] text-black flex items-center justify-center shadow-lg opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition duration-[250ms] hover:scale-105"
+                      className="absolute bottom-3 right-3 w-10 h-10 p-3 rounded-full bg-[#1DB954] hover:bg-[#1ed760] text-black flex items-center justify-center shadow-lg opacity-100 md:opacity-0 translate-y-0 md:translate-y-2 md:group-hover:opacity-100 md:group-hover:translate-y-0 transition duration-[250ms] hover:scale-105"
                     >
                       {isPlaying && playlist.musics.some((s) => s._id === currentSong?._id) ? (
                         <Pause className="w-5 h-5 fill-current text-black" />

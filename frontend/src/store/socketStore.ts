@@ -7,6 +7,9 @@ interface SocketState {
   connectSocket: () => void;
   disconnectSocket: () => void;
   emitPlay: (musicId: string, progress?: number) => void;
+  emitPause: (musicId: string, progress?: number) => void;
+  emitRequestSyncState: () => void;
+  emitSendSyncState: (requesterId: string, musicId: string, progress: number, isPlaying: boolean) => void;
 }
 
 export const useSocketStore = create<SocketState>((set, get) => ({
@@ -17,8 +20,9 @@ export const useSocketStore = create<SocketState>((set, get) => ({
     const { socket: existingSocket } = get();
     if (existingSocket) return;
 
-    // Connect to the same origin; Vite will proxy "/socket.io" correctly
-    const socketInstance = io({
+    // Connect using MUSIC_BACKEND_URL environment variable
+    const musicUrl = import.meta.env.MUSIC_BACKEND_URL || '';
+    const socketInstance = io(musicUrl, {
       withCredentials: true,
       autoConnect: true,
       transports: ['websocket', 'polling'],
@@ -55,6 +59,30 @@ export const useSocketStore = create<SocketState>((set, get) => ({
     if (socket && connected) {
       socket.emit('play', { musicId, progress: progress ?? 0 });
       console.log('Socket emit play:', musicId, 'at progress:', progress);
+    }
+  },
+
+  emitPause: (musicId, progress) => {
+    const { socket, connected } = get();
+    if (socket && connected) {
+      socket.emit('pause', { musicId, progress: progress ?? 0 });
+      console.log('Socket emit pause:', musicId, 'at progress:', progress);
+    }
+  },
+
+  emitRequestSyncState: () => {
+    const { socket, connected } = get();
+    if (socket && connected) {
+      socket.emit('requestSyncState');
+      console.log('Socket emit requestSyncState');
+    }
+  },
+
+  emitSendSyncState: (requesterId, musicId, progress, isPlaying) => {
+    const { socket, connected } = get();
+    if (socket && connected) {
+      socket.emit('sendSyncState', { requesterId, musicId, progress, isPlaying });
+      console.log('Socket emit sendSyncState to', requesterId, 'with music:', musicId, 'progress:', progress, 'isPlaying:', isPlaying);
     }
   },
 }));

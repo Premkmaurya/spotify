@@ -42,8 +42,31 @@ const getPlaylist = async (req, res) => {
     }
 };
 
+const deletePlaylist = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const user = req.user;
+
+        const playlist = await playlistModel.findById(id);
+        if (!playlist) {
+            return res.status(404).json({ message: 'Playlist not found' });
+        }
+
+        // Check if the user is the creator of the playlist
+        if (playlist.artistId.toString() !== user.id) {
+            return res.status(403).json({ message: 'Unauthorized: Only the creator can delete this playlist' });
+        }
+
+        await playlistModel.findByIdAndDelete(id);
+        return res.status(200).json({ message: 'Playlist deleted successfully' });
+    } catch (error) {
+        return res.status(500).json({ message: 'Error deleting playlist', error: error.message });
+    }
+};
+
 module.exports = {
     createPlaylist,
     getPlaylists,
     getPlaylist,
+    deletePlaylist,
 };

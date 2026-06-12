@@ -25,7 +25,7 @@ const socketAuthMiddleware = (socket, next) => {
 const initSocketServer = (server) => {
     const io = new Server(server, {
         cors: {
-            origin: '*',
+            origin: ['http://localhost:5173', 'http://127.0.0.1:5173'],
             credentials: true
         },
     });
@@ -39,6 +39,24 @@ const initSocketServer = (server) => {
             const musicId = data.musicId;
             const progress = data.progress !== undefined ? data.progress : 0;
             socket.broadcast.to(socket.user.id).emit("play", { musicId, progress })
+        })
+
+        socket.on("pause", (data) => {
+            const musicId = data.musicId;
+            const progress = data.progress !== undefined ? data.progress : 0;
+            socket.broadcast.to(socket.user.id).emit("pause", { musicId, progress })
+        })
+
+        socket.on("requestSyncState", () => {
+            socket.broadcast.to(socket.user.id).emit("requestSyncState", { requesterId: socket.id })
+        })
+
+        socket.on("sendSyncState", (data) => {
+            io.to(data.requesterId).emit("syncState", {
+                musicId: data.musicId,
+                progress: data.progress,
+                isPlaying: data.isPlaying
+            })
         })
 
         socket.on("disconnect", () => {

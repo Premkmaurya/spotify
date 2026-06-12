@@ -15,9 +15,10 @@ interface PlayerState {
   isRepeat: 'none' | 'all' | 'one';
   audio: HTMLAudioElement;
 
-  playSong: (song: Song, queueContext?: Song[], emitSocketPlay?: (musicId: string, progress?: number) => void, startAtProgress?: number) => void;
+  playSong: (song: Song, queueContext?: Song[], emitSocketPlay?: (musicId: string, progress?: number) => void, startAtProgress?: number, shouldPlay?: boolean) => void;
   playSelected: (song: Song, queueContext?: Song[]) => void;
-  togglePlay: (emitSocketPlay?: (musicId: string, progress?: number) => void) => void;
+  togglePlay: (emitSocketPlay?: (musicId: string, progress?: number) => void, emitSocketPause?: (musicId: string, progress?: number) => void) => void;
+  pauseSong: (startAtProgress?: number) => void;
   setPlaying: (isPlaying: boolean) => void;
   nextSong: (emitSocketPlay?: (musicId: string, progress?: number) => void) => void;
   prevSong: (emitSocketPlay?: (musicId: string, progress?: number) => void) => void;
@@ -27,7 +28,7 @@ interface PlayerState {
   toggleMute: () => void;
   setProgress: (progress: number) => void;
   setDuration: (duration: number) => void;
-  seek: (seconds: number, emitSocketPlay?: (musicId: string, progress?: number) => void) => void;
+  seek: (seconds: number, emitSocketPlay?: (musicId: string, progress?: number) => void, emitSocketPause?: (musicId: string, progress?: number) => void) => void;
   toggleShuffle: () => void;
   toggleRepeat: () => void;
   resetPlayer: () => void;
@@ -73,7 +74,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
     isRepeat: 'none',
     audio: globalAudio,
 
-    playSong: (song, queueContext = [], emitSocketPlay, startAtProgress) => {
+    playSong: (song, queueContext = [], emitSocketPlay, startAtProgress, shouldPlay = true) => {
       const { currentSong, audio } = get();
       
       // Update history if we had a current song
@@ -98,7 +99,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
         currentSong: song,
         queue: finalQueue,
         currentIndex: idx,
-        isPlaying: true,
+        isPlaying: shouldPlay,
         progress: startAtProgress ?? 0,
       });
 
@@ -106,9 +107,13 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
       const sourceChanged = audio.src !== song.musicUrl;
       if (sourceChanged) {
         audio.src = song.musicUrl;
+        audio.load();
         if (startAtProgress !== undefined && startAtProgress > 0) {
           const handleMetadata = () => {
             audio.currentTime = startAtProgress;
+            if (!shouldPlay) {
+              audio.pause();
+            }
             audio.removeEventListener('loadedmetadata', handleMetadata);
           };
           audio.addEventListener('loadedmetadata', handleMetadata);
@@ -120,18 +125,23 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
       }
       audio.volume = get().isMuted ? 0 : get().volume;
       
-      audio.play()
-        .then(() => {
-          set({ isPlaying: true });
-          // Emit to socket for synchronization
-          if (emitSocketPlay) {
-            emitSocketPlay(song._id, audio.currentTime);
-          }
-        })
-        .catch((err) => {
-          console.error('Audio playback failed:', err);
-          set({ isPlaying: false });
-        });
+      if (shouldPlay) {
+        audio.play()
+          .then(() => {
+            set({ isPlaying: true });
+            // Emit to socket for synchronization
+            if (emitSocketPlay) {
+              emitSocketPlay(song._id, audio.currentTime);
+            }
+          })
+          .catch((err) => {
+            console.error('Audio playback failed:', err);
+            set({ isPlaying: false });
+          });
+      } else {
+        audio.pause();
+        set({ isPlaying: false });
+      }
     },
 
     // A wrapper to be used by UI components (the sync hook will handle socket broadcasting)
@@ -139,13 +149,16 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
       get().playSong(song, queueContext);
     },
 
-    togglePlay: (emitSocketPlay) => {
+    togglePlay: (emitSocketPlay, emitSocketPause) => {
       const { isPlaying, currentSong, audio } = get();
       if (!currentSong) return;
 
       if (isPlaying) {
         audio.pause();
         set({ isPlaying: false });
+        if (emitSocketPause) {
+          emitSocketPause(currentSong._id, audio.currentTime);
+        }
       } else {
         audio.play()
           .then(() => {
@@ -157,6 +170,16 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
           .catch((err) => {
             console.error('Playback failed:', err);
           });
+      }
+    },
+
+    pauseSong: (startAtProgress) => {
+      const { audio } = get();
+      audio.pause();
+      set({ isPlaying: false });
+      if (startAtProgress !== undefined && !isNaN(startAtProgress)) {
+        audio.currentTime = startAtProgress;
+        set({ progress: startAtProgress });
       }
     },
 
@@ -254,13 +277,17 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
       set({ duration });
     },
 
-    seek: (seconds, emitSocketPlay) => {
+    seek: (seconds, emitSocketPlay, emitSocketPause) => {
       if (isNaN(seconds)) return;
       globalAudio.currentTime = seconds;
       set({ progress: seconds });
-      const { currentSong } = get();
-      if (currentSong && emitSocketPlay) {
-        emitSocketPlay(currentSong._id, seconds);
+      const { currentSong, isPlaying } = get();
+      if (currentSong) {
+        if (isPlaying && emitSocketPlay) {
+          emitSocketPlay(currentSong._id, seconds);
+        } else if (!isPlaying && emitSocketPause) {
+          emitSocketPause(currentSong._id, seconds);
+        }
       }
     },
 

@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { usePlayerStore } from '../../store/playerStore';
 import { useSocketStore } from '../../store/socketStore';
+import { VolumePopover } from './VolumePopover';
+import { AnimatePresence } from 'framer-motion';
 import {
   Play,
   Pause,
@@ -10,6 +12,7 @@ import {
   Repeat,
   Volume2,
   VolumeX,
+  Volume1,
   Radio,
   CheckCircle,
   AlertCircle
@@ -35,9 +38,11 @@ export const Player: React.FC = () => {
     toggleRepeat
   } = usePlayerStore();
 
-  const { emitPlay, connected } = useSocketStore();
+  const { emitPlay, emitPause, connected } = useSocketStore();
   const [sliderValue, setSliderValue] = useState(0);
   const [isSeeking, setIsSeeking] = useState(false);
+  const [isVolumeOpen, setIsVolumeOpen] = useState(false);
+  const volumeTriggerRef = useRef<HTMLButtonElement>(null);
 
   // Sync range slider with progress when not actively dragging
   useEffect(() => {
@@ -53,7 +58,7 @@ export const Player: React.FC = () => {
 
   const handleSeekMouseUp = () => {
     setIsSeeking(false);
-    seek(sliderValue, emitPlay);
+    seek(sliderValue, emitPlay, emitPause);
   };
 
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -69,17 +74,17 @@ export const Player: React.FC = () => {
 
   if (!currentSong) {
     return (
-      <footer className="h-[90px] bg-[#121212] border-t border-zinc-900 px-4 flex items-center justify-between text-mist text-xs select-none">
-        <div className="flex items-center gap-3 w-1/3">
-          <div className="w-14 h-14 bg-graphite rounded-md flex items-center justify-center">
-            <Radio className="w-6 h-6 text-zinc-600" />
+      <footer className="h-[60px] md:h-[90px] bg-[#121212] border-t border-zinc-900 px-4 flex items-center justify-between text-mist text-xs select-none">
+        <div className="flex items-center gap-3 w-[80%] md:w-1/3 min-w-0">
+          <div className="w-10 h-10 md:w-14 md:h-14 bg-graphite rounded-md flex items-center justify-center flex-shrink-0">
+            <Radio className="w-5 h-5 md:w-6 md:h-6 text-zinc-600" />
           </div>
-          <div>
-            <p className="text-white font-medium">Select a song to start listening</p>
-            <p className="text-[10px] text-fog">Playlists & songs await</p>
+          <div className="min-w-0">
+            <p className="text-white font-medium text-xs md:text-sm truncate">Select a song to start listening</p>
+            <p className="text-[9px] md:text-[10px] text-fog truncate">Playlists & songs await</p>
           </div>
         </div>
-        <div className="flex flex-col items-center gap-2 w-1/3">
+        <div className="hidden md:flex flex-col items-center gap-2 w-1/3">
           <div className="flex items-center gap-5">
             <button disabled className="text-zinc-700 cursor-not-allowed"><Shuffle className="w-5 h-5" /></button>
             <button disabled className="text-zinc-700 cursor-not-allowed"><SkipBack className="w-6 h-6" /></button>
@@ -93,7 +98,7 @@ export const Player: React.FC = () => {
             <span>0:00</span>
           </div>
         </div>
-        <div className="w-1/3 flex justify-end items-center gap-4">
+        <div className="hidden md:flex w-1/3 justify-end items-center gap-4">
           <div className="flex items-center gap-2 bg-zinc-900/50 px-3 py-1 rounded-full border border-zinc-800">
             {connected ? (
               <>
@@ -113,28 +118,36 @@ export const Player: React.FC = () => {
   }
 
   return (
-    <footer className="h-[90px] bg-[#121212] border-t border-[#282828] px-4 flex items-center justify-between select-none">
+    <footer className="relative h-[72px] md:h-[90px] bg-[#121212] border-t border-[#282828] px-4 flex items-center justify-between select-none">
+      {/* Mobile top thin progress indicator */}
+      <div className="absolute top-0 left-0 right-0 h-[2px] bg-zinc-800 md:hidden overflow-hidden">
+        <div 
+          className="h-full bg-spotify-green transition-all duration-100" 
+          style={{ width: `${(sliderValue / (duration || 100)) * 100}%` }}
+        />
+      </div>
+
       {/* Left section: Song metadata */}
-      <div className="flex items-center gap-3 w-1/3 min-w-0">
-        <div className="w-14 h-14 bg-graphite rounded-md flex-shrink-0 relative group shadow-lg overflow-hidden">
+      <div className="flex items-center gap-3 w-[70%] md:w-1/3 min-w-0">
+        <div className="w-11 h-11 md:w-14 md:h-14 bg-graphite rounded-md flex-shrink-0 relative group shadow-lg overflow-hidden">
           {currentSong.coverUrl ? (
             <img src={currentSong.coverUrl} alt={currentSong.title} className="w-full h-full object-cover" />
           ) : (
-            <Radio className="w-6 h-6 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-zinc-400" />
+            <Radio className="w-5 h-5 md:w-6 md:h-6 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-zinc-400" />
           )}
         </div>
         <div className="min-w-0">
-          <h4 className="text-sm text-white font-medium truncate hover:underline cursor-pointer">
+          <h4 className="text-xs md:text-sm text-white font-medium truncate hover:underline cursor-pointer">
             {currentSong.title}
           </h4>
-          <p className="text-xs text-mist truncate hover:underline cursor-pointer font-normal">
+          <p className="text-[11px] md:text-xs text-mist truncate hover:underline cursor-pointer font-normal mt-0.5">
             {currentSong.artist}
           </p>
         </div>
       </div>
 
-      {/* Middle section: Playback controls */}
-      <div className="flex flex-col items-center gap-2 w-1/3 max-w-2xl">
+      {/* Middle section: Desktop Playback controls */}
+      <div className="hidden md:flex flex-col items-center gap-2 w-1/3 max-w-2xl">
         <div className="flex items-center gap-5">
           <button
             onClick={toggleShuffle}
@@ -149,7 +162,7 @@ export const Player: React.FC = () => {
             <SkipBack className="w-6 h-6 fill-current" />
           </button>
           <button
-            onClick={() => togglePlay(emitPlay)}
+            onClick={() => togglePlay(emitPlay, emitPause)}
             className="w-11 h-11 rounded-full bg-white text-black flex items-center justify-center transition hover:scale-105 active:scale-95"
           >
             {isPlaying ? (
@@ -188,6 +201,7 @@ export const Player: React.FC = () => {
             value={sliderValue}
             onChange={handleSeekChange}
             onMouseUp={handleSeekMouseUp}
+            onMouseLeave={handleSeekMouseUp}
             onTouchEnd={handleSeekMouseUp}
             className="flex-1 h-[4px] rounded-full appearance-none cursor-pointer bg-zinc-700 accent-spotify-green hover:accent-spotify-green outline-none"
             style={{
@@ -198,8 +212,70 @@ export const Player: React.FC = () => {
         </div>
       </div>
 
-      {/* Right section: Volume & Sync details */}
-      <div className="w-1/3 flex justify-end items-center gap-4">
+      {/* Mobile-only playback control group with inline seek slider */}
+      <div className="flex md:hidden flex-row items-center justify-center gap-2 w-[45%] flex-shrink-0">
+
+        <div className="flex items-center gap-3 mx-8">
+          <button
+            onClick={() => prevSong(emitPlay)}
+            className="text-mist hover:text-white transition active:scale-90"
+            aria-label="Previous"
+          >
+            <SkipBack className="w-5 h-5 fill-current" />
+          </button>
+          <button
+            onClick={() => togglePlay(emitPlay, emitPause)}
+            className="w-10 h-10 p-3 rounded-full bg-white text-black flex items-center justify-center transition active:scale-90 shadow-lg"
+            aria-label="Play Pause"
+          >
+            {isPlaying ? (
+              <Pause className="w-6 h-6 fill-current text-black" />
+            ) : (
+              <Play className="w-6 h-6 fill-current text-black" />
+            )}
+          </button>
+          <button
+            onClick={() => nextSong(emitPlay)}
+            className="text-mist hover:text-white transition active:scale-90"
+            aria-label="Next"
+          >
+            <SkipForward className="w-5 h-5 fill-current" />
+          </button>
+        </div>
+        <div className="relative flex items-center justify-center">
+          <button
+            ref={volumeTriggerRef}
+            onClick={() => setIsVolumeOpen(!isVolumeOpen)}
+            className="text-mist hover:text-white transition active:scale-90 focus:outline-none p-1"
+            aria-label="Volume control"
+            aria-expanded={isVolumeOpen}
+          >
+            {isMuted || volume === 0 ? (
+              <VolumeX className="w-5 h-5 text-red-400" />
+            ) : volume < 0.5 ? (
+              <Volume1 className="w-5 h-5" />
+            ) : (
+              <Volume2 className="w-5 h-5" />
+            )}
+          </button>
+
+          <AnimatePresence>
+            {isVolumeOpen && (
+              <VolumePopover
+                onClose={() => setIsVolumeOpen(false)}
+                volume={volume}
+                isMuted={isMuted}
+                onVolumeChange={setVolume}
+                onToggleMute={toggleMute}
+                triggerRef={volumeTriggerRef}
+              />
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+
+      {/* Right section: Volume & Sync details (Desktop) */}
+      <div className="hidden md:flex w-1/3 justify-end items-center gap-4">
         {/* Connection status badge */}
         <div className="flex items-center gap-2 bg-[#1f1f1f] border border-zinc-800/80 px-3 py-1 rounded-full shadow-inner">
           {connected ? (

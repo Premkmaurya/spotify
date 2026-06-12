@@ -10,4 +10,6 @@ router.get('/', authValidate.userValidate, playlistController.getPlaylists);
 
 router.get('/:id', authValidate.userValidate, playlistController.getPlaylist);
 
+router.delete('/delete/:id', authValidate.artistValidate, playlistController.deletePlaylist);
+
 module.exports = router;

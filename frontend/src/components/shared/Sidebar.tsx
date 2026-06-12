@@ -15,7 +15,7 @@ export const Sidebar: React.FC = () => {
   });
 
   return (
-    <aside className="w-[280px] bg-black p-2 flex flex-col gap-2 h-full select-none text-mist font-semibold">
+    <aside className="hidden md:flex w-[280px] bg-black p-2 flex flex-col gap-2 h-full select-none text-mist font-semibold flex-shrink-0">
       {/* Navigation block */}
       <div className="bg-surface-sidebar rounded-xl p-5 flex flex-col gap-4">
         {/* Logo */}
