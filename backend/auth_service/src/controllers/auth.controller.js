@@ -27,12 +27,13 @@ const register = async (req, res) => {
       },
       _config.JWT_SECRET,
       {
-        expiresIn: "1h",
+        expiresIn: "30d",
       },
     );
     res.cookie("token", token, {
       httpOnly: true,
-      secure: _config.NODE_ENV === "production",
+      secure: true,
+      sameSite: 'none',
     });
 
     await newUser.save();
@@ -64,12 +65,13 @@ const login = async (req, res) => {
       },
       _config.JWT_SECRET,
       {
-        expiresIn: "1h",
+        expiresIn: "30d",
       },
     );
     res.cookie("token", token, {
       httpOnly: true,
-      secure: _config.NODE_ENV === "production",
+      secure: true,
+      sameSite: 'none',
     });
     res.status(200).json({ message: "User logged in successfully" });
   } catch (err) {
