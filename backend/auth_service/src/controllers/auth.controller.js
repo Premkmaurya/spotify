@@ -32,8 +32,8 @@ const register = async (req, res) => {
     );
     res.cookie("token", token, {
       httpOnly: true,
-      secure: true,
-      sameSite: 'none',
+      secure: _config.NODE_ENV === "production",
+      sameSite: 'none'
     });
 
     await newUser.save();
@@ -70,8 +70,8 @@ const login = async (req, res) => {
     );
     res.cookie("token", token, {
       httpOnly: true,
-      secure: true,
-      sameSite: 'none',
+      secure: _config.NODE_ENV === "production",
+      sameSite: 'none'
     });
     res.status(200).json({ message: "User logged in successfully" });
   } catch (err) {
