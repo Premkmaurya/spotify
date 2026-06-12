@@ -1,40 +1,45 @@
 const jwt = require("jsonwebtoken");
 const _config = require("../config/config");
 
-const userValidate = (req, res, next) => {
-    const token = req.cookies?.token || req.headers.authorization?.split(" ")[1];
-    if (!token) {
-        return res.status(401).json({ message: "No token, authorization denied" });
-    }
+const getTokenFromHeader = (req) => {
+  const authHeader = req.headers.authorization || req.headers.Authorization;
+  return authHeader?.startsWith("Bearer ") ? authHeader.split(" ")[1] : null;
+};
 
-    try {
-        const decoded = jwt.verify(token, _config.JWT_SECRET);
-        req.user = decoded;
-        next();
-    } catch (err) {
-        return res.status(401).json({ message: "Token is not valid" });
-    }
+const userValidate = (req, res, next) => {
+  const token = getTokenFromHeader(req);
+  if (!token) {
+    return res.status(401).json({ message: "No token, authorization denied" });
+  }
+
+  try {
+    const decoded = jwt.verify(token, _config.JWT_SECRET);
+    req.user = decoded;
+    next();
+  } catch (err) {
+    return res.status(401).json({ message: "Token is not valid" });
+  }
 };
 
 const artistValidate = (req, res, next) => {
-    const token = req.cookies?.token || req.headers.authorization?.split(" ")[1];
-    if (!token) {
-        return res.status(401).json({ message: "No token, authorization denied" });
-    }
+  const token = getTokenFromHeader(req);
+  if (!token) {
+    return res.status(401).json({ message: "No token, authorization denied" });
+  }
 
-    try {
-        const decoded = jwt.verify(token, _config.JWT_SECRET);
-        if (decoded.role !== "artist") {
-            return res.status(403).json({ message: "Access denied" });
-        }
-        req.user = decoded;
-        next();
-    } catch (err) {
-        return res.status(401).json({ message: "Token is not valid" });
+  try {
+    const decoded = jwt.verify(token, _config.JWT_SECRET);
+    if (decoded.role !== "artist") {
+      return res.status(403).json({ message: "Access denied" });
     }
+    req.user = decoded;
+    next();
+  } catch (err) {
+    return res.status(401).json({ message: "Token is not valid" });
+  }
 };
 
 module.exports = {
-    userValidate,
-    artistValidate
-}
+  userValidate,
+  artistValidate,
+};

@@ -18,26 +18,27 @@ const register = async (req, res) => {
       role,
     });
 
-    const token = jwt.sign(
-      {
-        id: newUser._id,
-        role: newUser.role,
-        email: newUser.email,
-        username: newUser.username,
-      },
-      _config.JWT_SECRET,
-      {
-        expiresIn: "30d",
-      },
-    );
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: _config.NODE_ENV === "production",
-      sameSite: 'none'
+    const tokenPayload = {
+      id: newUser._id,
+      role: newUser.role,
+      email: newUser.email,
+      username: newUser.username,
+    };
+    const token = jwt.sign(tokenPayload, _config.JWT_SECRET, {
+      expiresIn: "30d",
     });
 
     await newUser.save();
-    res.status(201).json({ message: "User registered successfully" });
+    res.status(201).json({
+      message: "User registered successfully",
+      token,
+      user: {
+        id: newUser._id,
+        username: newUser.username,
+        email: newUser.email,
+        role: newUser.role,
+      },
+    });
   } catch (err) {
     res.status(500).json({ message: "Server error" });
   }
@@ -68,19 +69,23 @@ const login = async (req, res) => {
         expiresIn: "30d",
       },
     );
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: _config.NODE_ENV === "production",
-      sameSite: 'none'
+
+    res.status(200).json({
+      message: "User logged in successfully",
+      token,
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+      },
     });
-    res.status(200).json({ message: "User logged in successfully" });
   } catch (err) {
     res.status(500).json({ message: "Server error" });
   }
 };
 
 const logout = (req, res) => {
-  res.clearCookie("token");
   res.status(200).json({ message: "User logged out successfully" });
 };
 

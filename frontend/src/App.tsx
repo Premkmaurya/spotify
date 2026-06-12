@@ -1,8 +1,8 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'sonner';
-import { useAuthStore } from './store/authStore';
+import { useAuth } from './context/AuthContext';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
 import { Home } from './pages/Home';
@@ -23,12 +23,7 @@ const queryClient = new QueryClient({
 });
 
 export const App: React.FC = () => {
-  const { checkAuth, isLoading } = useAuthStore();
-
-  useEffect(() => {
-    // Check user authentication token cookie on initial page load
-    checkAuth();
-  }, [checkAuth]);
+  const { isLoading } = useAuth();
 
   if (isLoading) {
     return (

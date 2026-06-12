@@ -1,31 +1,29 @@
 const { Server } = require('socket.io');
 const jwt = require('jsonwebtoken');
 const config = require('../config/config');
-const cookie = require('cookie')
-
 
 const socketAuthMiddleware = (socket, next) => {
-    try {
-        const cookieHeader = (socket.handshake.headers.cookie || '');
-        const cookies = cookie.parse(cookieHeader);
-        const token = cookies.token;
-        if (!token) {
-            return next(new Error('Authentication error: token required'));
-        }
+  try {
+    const authHeader = socket.handshake.auth?.authorization || socket.handshake.headers?.authorization;
+    const token = authHeader?.startsWith('Bearer ') ? authHeader.split(' ')[1] : socket.handshake.auth?.token || socket.handshake.query?.token;
 
-        const decoded = jwt.verify(token, config.JWT_SECRET);
-        socket.user = decoded;
-        next();
-    } catch (error) {
-        console.error('Socket auth failed:', error.message);
-        next(new Error('Authentication error'));
+    if (!token) {
+      return next(new Error('Authentication error: token required'));
     }
+
+    const decoded = jwt.verify(token, config.JWT_SECRET);
+    socket.user = decoded;
+    next();
+  } catch (error) {
+    console.error('Socket auth failed:', error.message);
+    next(new Error('Authentication error'));
+  }
 };
 
 const initSocketServer = (server) => {
     const io = new Server(server, {
         cors: {
-            origin: ['http://localhost:5173', 'http://127.0.0.1:5173'],
+            origin: ['http://localhost:5173', 'http://127.0.0.1:5173','https://spotify-music-3tlg.onrender.com'],
             credentials: true
         },
     });

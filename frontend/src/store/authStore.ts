@@ -2,7 +2,9 @@ import { create } from 'zustand';
 import type { User } from '../types';
 import { loginUser, registerUser, logoutUser, getMeUser } from '../services/api/auth';
 
-interface AuthState {
+const AUTH_TOKEN_KEY = 'spotify_token';
+
+export interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
@@ -14,6 +16,14 @@ interface AuthState {
   clearError: () => void;
 }
 
+const saveToken = (token: string) => {
+  localStorage.setItem(AUTH_TOKEN_KEY, token);
+};
+
+const clearToken = () => {
+  localStorage.removeItem(AUTH_TOKEN_KEY);
+};
+
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   isAuthenticated: false,
@@ -23,9 +33,9 @@ export const useAuthStore = create<AuthState>((set) => ({
   login: async (data) => {
     set({ isLoading: true, error: null });
     try {
-      await loginUser(data);
-      const { user } = await getMeUser();
-      set({ user, isAuthenticated: true, isLoading: false });
+      const response = await loginUser(data);
+      saveToken(response.token);
+      set({ user: response.user, isAuthenticated: true, isLoading: false });
     } catch (err: any) {
       set({
         error: err.response?.data?.message || 'Login failed. Please check your credentials.',
@@ -38,10 +48,9 @@ export const useAuthStore = create<AuthState>((set) => ({
   register: async (data) => {
     set({ isLoading: true, error: null });
     try {
-      await registerUser(data);
-      // Automatically log in after registration by calling getMe
-      const { user } = await getMeUser();
-      set({ user, isAuthenticated: true, isLoading: false });
+      const response = await registerUser(data);
+      saveToken(response.token);
+      set({ user: response.user, isAuthenticated: true, isLoading: false });
     } catch (err: any) {
       set({
         error: err.response?.data?.message || 'Registration failed.',
@@ -52,22 +61,30 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   logout: async () => {
-    set({ isLoading: true });
+    set({ isLoading: true, error: null });
     try {
       await logoutUser();
-      set({ user: null, isAuthenticated: false, isLoading: false });
     } catch (err: any) {
-      set({ error: err.response?.data?.message || 'Logout failed.', isLoading: false });
+      set({ error: err.response?.data?.message || 'Logout failed.' });
+    } finally {
+      clearToken();
+      set({ user: null, isAuthenticated: false, isLoading: false });
     }
   },
 
   checkAuth: async () => {
     set({ isLoading: true, error: null });
+    const token = localStorage.getItem(AUTH_TOKEN_KEY);
+    if (!token) {
+      set({ user: null, isAuthenticated: false, isLoading: false });
+      return;
+    }
+
     try {
       const { user } = await getMeUser();
       set({ user, isAuthenticated: true, isLoading: false });
-    } catch (err) {
-      // User is not logged in or token is invalid
+    } catch (err: any) {
+      clearToken();
       set({ user: null, isAuthenticated: false, isLoading: false });
     }
   },

@@ -22,8 +22,11 @@ export const useSocketStore = create<SocketState>((set, get) => ({
 
     // Connect using MUSIC_BACKEND_URL environment variable
     const musicUrl = import.meta.env.MUSIC_BACKEND_URL || '';
+    const token = localStorage.getItem('spotify_token');
     const socketInstance = io(musicUrl, {
-      withCredentials: true,
+      auth: {
+        authorization: token ? `Bearer ${token}` : undefined,
+      },
       autoConnect: true,
       transports: ['websocket', 'polling'],
     });
