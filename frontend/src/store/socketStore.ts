@@ -20,15 +20,28 @@ export const useSocketStore = create<SocketState>((set, get) => ({
     const { socket: existingSocket } = get();
     if (existingSocket) return;
 
-    // Connect using MUSIC_BACKEND_URL environment variable
-    const musicUrl = import.meta.env.MUSIC_BACKEND_URL || '';
+    // Get Socket.IO server URL from environment variable
+    // VITE_MUSIC_BACKEND_URL should be the full URL (e.g., https://my-render-backend.onrender.com)
+    const musicUrl = import.meta.env.VITE_MUSIC_BACKEND_URL;
+    
+    if (!musicUrl) {
+      console.error('Socket.IO URL not configured. Set VITE_MUSIC_BACKEND_URL environment variable.');
+      set({ connected: false });
+      return;
+    }
+
     const token = localStorage.getItem('spotify_token');
     const socketInstance = io(musicUrl, {
       auth: {
-        authorization: token ? `Bearer ${token}` : undefined,
+        token: token || undefined,
       },
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      reconnectionAttempts: 5,
       autoConnect: true,
       transports: ['websocket', 'polling'],
+      path: '/socket.io/',
     });
 
     socketInstance.on('connect', () => {
