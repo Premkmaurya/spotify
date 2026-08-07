@@ -13,6 +13,13 @@ app.use(cors({
 }));
 app.use(morgan('dev'));
 
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    service: 'auth-service'
+  });
+});
+
 // Routes
 app.use('/api/auth', authRoutes);
 

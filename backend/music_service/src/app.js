@@ -14,6 +14,13 @@ app.use(cors({
 }));
 app.use(morgan('dev'));
 
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    service: 'music-service'
+  });
+});
+
 app.use('/api/music', musicRoutes);
 app.use('/api/playlist', playlistRoutes);
 
